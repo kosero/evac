@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
     Number(i64),
@@ -8,7 +8,10 @@ pub enum Token {
     Slash,
     LParen,
     RParen,
+    LBrace,
+    RBrace,
     Semicolon,
+    Equal,
     Unknown(char),
 }
 
@@ -50,6 +53,9 @@ impl Tokenizer {
                 '/' => Token::Slash,
                 '(' => Token::LParen,
                 ')' => Token::RParen,
+                '{' => Token::LBrace,
+                '}' => Token::RBrace,
+                '=' => Token::Equal,
                 ';' => Token::Semicolon,
                 '0'..='9' => {
                     let mut num = ch.to_string();
