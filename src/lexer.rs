@@ -1,149 +1,91 @@
-// lexer.rs
-use crate::tokenizer::Token;
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum ASTNode {
+#[derive(Debug, PartialEq, Clone)]
+pub enum Token {
     Identifier(String),
     Number(i64),
-    BinaryOp { left: Box<ASTNode>, op: Token, right: Box<ASTNode> },
-    Function {
-        name: String,
-        params: Vec<String>,
-        body: Box<ASTNode>,
-    },
-    Return(Box<ASTNode>),
-    Assignment {
-        left: String,
-        right: Box<ASTNode>,
-    },
-    Block(Vec<ASTNode>),
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    LParen,
+    RParen,
+    LBrace,
+    RBrace,
+    Semicolon,
+    Equal,
+    Unknown(char),
 }
 
 pub struct Lexer {
-    tokens: Vec<Token>,
+    input: Vec<char>,
     position: usize,
 }
 
 impl Lexer {
-    pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, position: 0 }
+    pub fn new(input: &str) -> Self {
+        Self {
+            input: input.chars().collect(),
+            position: 0,
+        }
     }
 
-    fn next_token(&mut self) -> Option<Token> {
-        if self.position < self.tokens.len() {
-            let token = self.tokens[self.position].clone();
+    fn next_char(&mut self) -> Option<char> {
+        if self.position < self.input.len() {
+            let ch = self.input[self.position];
             self.position += 1;
-            Some(token)
+            Some(ch)
         } else {
             None
         }
     }
-    pub fn peek_token(&self) -> Option<&Token> {
-        self.tokens.get(self.position)
+
+    fn peek_char(&self) -> Option<char> {
+        self.input.get(self.position).copied()
     }
 
-    pub fn parse_block(&mut self) -> Option<ASTNode> {
-        let mut statements = Vec::new();
-    
-        while let Some(token) = self.peek_token() {
-            match token {
-                Token::RBrace => {
-                    self.next_token();
-                    break;
-                }
-                _ => {
-                    if let Some(statement) = self.parse_expression() {
-                        statements.push(statement);
-                    } else {
-                        return None;
+    pub fn lex(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        while let Some(ch) = self.next_char() {
+            let token = match ch {
+                '+' => Token::Plus,
+                '-' => Token::Minus,
+                '*' => Token::Star,
+                '/' => Token::Slash,
+                '(' => Token::LParen,
+                ')' => Token::RParen,
+                '{' => Token::LBrace,
+                '}' => Token::RBrace,
+                '=' => Token::Equal,
+                ';' => Token::Semicolon,
+                '0'..='9' => {
+                    let mut num = ch.to_string();
+                    while let Some(next) = self.peek_char() {
+                        if next.is_ascii_digit() {
+                            num.push(self.next_char().unwrap());
+                        } else {
+                            break;
+                        }
                     }
+                    Token::Number(num.parse().unwrap())
                 }
-            }
-        }
-    
-        Some(ASTNode::Block(statements))
-    }
-    
-    pub fn parse_expression(&mut self) -> Option<ASTNode> {
-        let token = self.next_token()?;
-        println!("Parsing token: {:?}", token);
-    
-        if token == Token::LBrace {
-            return self.parse_block();
-        }
-    
-        if let Token::Identifier(ref name) = token {
-            if name == "fn" {
-                let func_name = match self.next_token()? {
-                    Token::Identifier(name) => name,
-                    _ => return None,
-                };
-                println!("Function name: {:?}", func_name);
-    
-                if self.next_token()? != Token::LParen {
-                    return None;
-                }
-    
-                let mut params = Vec::new();
-                while let Some(Token::Identifier(param)) = self.next_token() {
-                    params.push(param);
-                    if let Some(Token::RParen) = self.peek_token() {
-                        self.next_token();
-                        break;
+                'a'..='z' | 'A'..='Z' | '_' => {
+                    let mut ident = ch.to_string();
+                    while let Some(next) = self.peek_char() {
+                        if next.is_alphanumeric() || next == '_' {
+                            ident.push(self.next_char().unwrap());
+                        } else {
+                            break;
+                        }
                     }
+                    Token::Identifier(ident)
                 }
-    
-                println!("Parameters: {:?}", params);
-    
-                if self.next_token()? != Token::LBrace {
-                    return None;
-                }
-    
-                let body = self.parse_block()?;
-    
-                return Some(ASTNode::Function {
-                    name: func_name,
-                    params,
-                    body: Box::new(body),
-                });
-            } else if name == "return" {
-                let expr = self.parse_expression()?;
-                return Some(ASTNode::Return(Box::new(expr)));
-            }
+                _ if ch.is_whitespace() => continue,
+                _ => Token::Unknown(ch),
+            };
+            tokens.push(token);
         }
-    
-        if let Token::Identifier(var_name) = token {
-            if let Some(Token::Equal) = self.peek_token() {
-                self.next_token();
-                let expr = self.parse_expression()?;
-                return Some(ASTNode::Assignment {
-                    left: var_name,
-                    right: Box::new(expr),
-                });
-            }
-            return Some(ASTNode::Identifier(var_name));
-        }
-    
-        let left = match token {
-            Token::Number(n) => ASTNode::Number(n),
-            _ => return None,
-        };
-    
-        if let Some(op) = self.next_token() {
-            match op {
-                Token::Plus | Token::Minus | Token::Star | Token::Slash | Token::Equal => {
-                    let right = self.parse_expression()?;
-                    return Some(ASTNode::BinaryOp {
-                        left: Box::new(left),
-                        op,
-                        right: Box::new(right),
-                    });
-                }
-                _ => {}
-            }
-        }
-    
-        Some(left)
+
+        tokens
     }
 }
+

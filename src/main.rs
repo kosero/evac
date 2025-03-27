@@ -1,25 +1,24 @@
-mod tokenizer;
 mod lexer;
+mod ast;
 
-use tokenizer::Tokenizer;
 use lexer::Lexer;
+use ast::AST;
 
 fn main() {
     let input = "fn main(argc) { a = 1; return 42; }";
 
-    let mut tokenizer = Tokenizer::new(input);
-    let tokens = tokenizer.tokenize();
+    let mut lexer = Lexer::new(input);
+    let lex = lexer.lex();
 
     println!("Tokens:");
-    for token in &tokens {
+    for token in &lex {
         println!("{:?}", token);
     }
 
-    let mut lexer = Lexer::new(tokens);
-    if let Some(ast) = lexer.parse_expression() {
-        println!("AST: {:?}", ast);
+    let mut ast = AST::new(lex);
+    if let Some(ast_text) = ast.parse_expression() {
+        println!("AST: {:?}", ast_text);
     } else {
         println!("Failed to parse expression.");
     }
 }
-
