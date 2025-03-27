@@ -1,8 +1,8 @@
-mod lexer;
 mod ast;
+mod lexer;
 
-use lexer::Lexer;
 use ast::AST;
+use lexer::Lexer;
 
 fn main() {
     let input = "fn main(argc) { a = 1; return 42; }";

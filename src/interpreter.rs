@@ -19,4 +19,3 @@ impl Environment {
         self.variables.insert(name, value);
     }
 }
-

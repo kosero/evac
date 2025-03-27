@@ -5,7 +5,11 @@ use crate::lexer::Token;
 pub enum ASTNode {
     Identifier(String),
     Number(i64),
-    BinaryOp { left: Box<ASTNode>, op: Token, right: Box<ASTNode> },
+    BinaryOp {
+        left: Box<ASTNode>,
+        op: Token,
+        right: Box<ASTNode>,
+    },
     Function {
         name: String,
         params: Vec<String>,
@@ -26,7 +30,10 @@ pub struct AST {
 
 impl AST {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, position: 0 }
+        Self {
+            tokens,
+            position: 0,
+        }
     }
 
     fn next_token(&mut self) -> Option<Token> {
@@ -44,7 +51,7 @@ impl AST {
 
     pub fn parse_block(&mut self) -> Option<ASTNode> {
         let mut statements = Vec::new();
-    
+
         while let Some(token) = self.peek_token() {
             match token {
                 Token::RBrace => {
@@ -60,18 +67,18 @@ impl AST {
                 }
             }
         }
-    
+
         Some(ASTNode::Block(statements))
     }
-    
+
     pub fn parse_expression(&mut self) -> Option<ASTNode> {
         let token = self.next_token()?;
         println!("Parsing token: {:?}", token);
-    
+
         if token == Token::LBrace {
             return self.parse_block();
         }
-    
+
         if let Token::Identifier(ref name) = token {
             if name == "fn" {
                 let func_name = match self.next_token()? {
@@ -79,11 +86,11 @@ impl AST {
                     _ => return None,
                 };
                 println!("Function name: {:?}", func_name);
-    
+
                 if self.next_token()? != Token::LParen {
                     return None;
                 }
-    
+
                 let mut params = Vec::new();
                 while let Some(Token::Identifier(param)) = self.next_token() {
                     params.push(param);
@@ -92,15 +99,15 @@ impl AST {
                         break;
                     }
                 }
-    
+
                 println!("Parameters: {:?}", params);
-    
+
                 if self.next_token()? != Token::LBrace {
                     return None;
                 }
-    
+
                 let body = self.parse_block()?;
-    
+
                 return Some(ASTNode::Function {
                     name: func_name,
                     params,
@@ -111,7 +118,7 @@ impl AST {
                 return Some(ASTNode::Return(Box::new(expr)));
             }
         }
-    
+
         if let Token::Identifier(var_name) = token {
             if let Some(Token::Equal) = self.peek_token() {
                 self.next_token();
@@ -123,12 +130,12 @@ impl AST {
             }
             return Some(ASTNode::Identifier(var_name));
         }
-    
+
         let left = match token {
             Token::Number(n) => ASTNode::Number(n),
             _ => return None,
         };
-    
+
         if let Some(op) = self.next_token() {
             match op {
                 Token::Plus | Token::Minus | Token::Star | Token::Slash | Token::Equal => {
@@ -142,7 +149,7 @@ impl AST {
                 _ => {}
             }
         }
-    
+
         Some(left)
     }
 }
